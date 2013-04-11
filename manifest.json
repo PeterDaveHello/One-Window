@@ -1,0 +1,15 @@
+{
+  "name": "One Window",
+  "description": "Automatically moves new Windows and Popups as Tab to the Main-Window. So it is never more than a single Window open.",
+  "version": "2.2",
+  "permissions": [
+    "tabs"
+  ],
+  "background": {
+    "scripts": ["background.js"]
+  },
+  "icons":{
+	"128":"icon.png"
+  },
+  "manifest_version": 2
+}
