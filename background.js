@@ -4,9 +4,9 @@ if (localStorage["tabs"] === undefined) {
 
 if (localStorage["blacklist"] === undefined) {
 	// Regular expressions of blacklisted urls
-	localStorage["blacklist"] = [
-		/^chrome-devtools:/
-	];
+	localStorage["blacklist"] = JSON.stringify([
+		"^chrome-devtools:"
+	]);
 }
 
 /**
@@ -16,8 +16,8 @@ if (localStorage["blacklist"] === undefined) {
  * @returns {boolean}
  */
 function isBlacklisted(url) {
-	return Array.prototype.some.call(localStorage["blacklist"], function (blacklistRegExp) {
-		return url.match(blacklistRegExp);
+	return Array.prototype.some.call(JSON.parse(localStorage["blacklist"]), function (blacklistRegExp) {
+		return url.match(new RegExp(blacklistRegExp));
 	});
 }
 
