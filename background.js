@@ -38,6 +38,7 @@ chrome.windows.getLastFocused({populate:false},function(window){
 
 // Wait for popups
 chrome.windows.onCreated.addListener(function (window) {
+	if(window.type !== "popup" && !localStorage["all"]) return;
 	freezed = true;
 
 	// Get all tabs of the new window
