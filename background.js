@@ -13,49 +13,80 @@ function isBlacklisted(url) {
 
 var windowId = null;
 var index = null;
-var freezed = true;
-chrome.tabs.onActivated.addListener(function(info){
-	if(freezed) return;
+var queue = [];
+
+
+function onActivated(info){
 	chrome.tabs.get(info.tabId,function(tab){
 		index = tab.index;
 	})
-})
-chrome.windows.onFocusChanged.addListener(function (winId) {
+}
+function onFocusChanged(winId){
+	console.log("focused",winID);
 	chrome.tabs.query({windowId:winId,active:true}, function (tabs) {
-		if(freezed) return;
 		windowId = winId;
 		tab = tabs[0].index;
 	});
-});
+}
+
+function listen(){
+	chrome.windows.onFocusChanged.addListener(onFocusChanged);
+	chrome.tabs.onActivated.addListener(onActivated)
+}
+
+function unlisten(){
+	chrome.windows.onFocusChanged.removeListener(onFocusChanged);
+	chrome.tabs.onActivated.removeListener(onActivated);
+}
+
 
 chrome.windows.getLastFocused({populate:false},function(window){
 	chrome.tabs.query({windowId:window.id,active:true},function(tabs){
 		windowId = window.id;
 		index=tabs[0].index;
-		freezed = false;
+		listen();
 	})
 });
 
 // Wait for popups
 chrome.windows.onCreated.addListener(function (window) {
 	if(window.type !== "popup" && !localStorage["all"]) return;
-	freezed = true;
+	unlisten();
+	queue.push(window);
+	if(queue.length == 1){
+		merge();
+	}
+});
 
+function merge(){
 	// Get all tabs of the new window
+	var window = queue[0];
 	chrome.windows.get(window.id, {populate: true}, function (window) {
+		var focus = true;
+		for(var i = 0; i < window.tabs.length; i++){
+			if(isBlacklisted(window.tabs[i].url)){
+				window.tabs.splice(i--,1);
+				focus = false;
+			}
+		}
 		var completed = 0;
 		for(var i = 0; i < window.tabs.length; i++){
 			(function (tab,i) {
 				if (!isBlacklisted(tab.url)) {
+					console.log("moving tab",tab.id,"from window",tab.windowId," to position",index+i+1," of window",windowId);
 					chrome.tabs.move(tab.id, {windowId: windowId, index: index+i+1}, function () {
 						if(++completed == window.tabs.length){
-							freezed = false;
-							chrome.tabs.update(tab.id, {active: true},function(){
-							});
+							queue.shift();
+							if(!queue.length){
+								listen();
+								if(focus)chrome.tabs.update(tab.id, {active: true},function(){});
+							}else{
+								merge();
+							}
 						}
 					});
 				}
 			})(window.tabs[i],i);
 		}
 	});
-});
+}
