@@ -22,7 +22,6 @@ function onActivated(info){
 	})
 }
 function onFocusChanged(winId){
-	console.log("focused",winID);
 	chrome.tabs.query({windowId:winId,active:true}, function (tabs) {
 		windowId = winId;
 		tab = tabs[0].index;
@@ -44,6 +43,7 @@ chrome.windows.getLastFocused({populate:false},function(window){
 	chrome.tabs.query({windowId:window.id,active:true},function(tabs){
 		windowId = window.id;
 		index=tabs[0].index;
+		console.log("gonna listen now");
 		listen();
 	})
 });
