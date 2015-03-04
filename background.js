@@ -18,11 +18,14 @@ var queue = [];
 
 function onActivated(info){
 	chrome.tabs.get(info.tabId,function(tab){
+		if(!tab) return;
 		index = tab.index;
+		windowId = tab.windowId;
 	})
 }
 function onFocusChanged(winId){
 	chrome.tabs.query({windowId:winId,active:true}, function (tabs) {
+		if(!tabs || !tabs.length) return;
 		windowId = winId;
 		tab = tabs[0].index;
 	});
@@ -43,7 +46,6 @@ chrome.windows.getLastFocused({populate:false},function(window){
 	chrome.tabs.query({windowId:window.id,active:true},function(tabs){
 		windowId = window.id;
 		index=tabs[0].index;
-		console.log("gonna listen now");
 		listen();
 	})
 });
@@ -62,6 +64,7 @@ function merge(){
 	// Get all tabs of the new window
 	var window = queue[0];
 	chrome.windows.get(window.id, {populate: true}, function (window) {
+		if(!window || !window.tabs || !window.tabs.length) return endMerge();
 		var focus = true;
 		for(var i = 0; i < window.tabs.length; i++){
 			if(isBlacklisted(window.tabs[i].url)){
@@ -76,17 +79,22 @@ function merge(){
 					console.log("moving tab",tab.id,"from window",tab.windowId," to position",index+i+1," of window",windowId);
 					chrome.tabs.move(tab.id, {windowId: windowId, index: index+i+1}, function () {
 						if(++completed == window.tabs.length){
-							queue.shift();
-							if(!queue.length){
-								listen();
-								if(focus)chrome.tabs.update(tab.id, {active: true},function(){});
-							}else{
-								merge();
-							}
+							if(focus)chrome.tabs.update(tab.id, {active: true},function(){});
+							endMerge();
 						}
 					});
 				}
 			})(window.tabs[i],i);
 		}
 	});
+
+	function endMerge(){
+		queue.shift();
+		if(!queue.length){
+			listen();
+
+		}else{
+			merge();
+		}
+	}
 }
